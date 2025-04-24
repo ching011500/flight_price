@@ -39,9 +39,9 @@ long_airports  = ["LAX","JFK","LHR","CDG","FRA","SYD","ZRH"]
 # --------------------------
 # 資料路徑
 # --------------------------
-RAW_SHORT = '/Users/yuchingchen/Documents/專題/cleaned_data/short_flight.csv'
-RAW_LONG  = '/Users/yuchingchen/Documents/專題/cleaned_data/long_flight.csv'
-PRED_DIR  = '/Users/yuchingchen/Documents/專題/predict/predict_data'
+RAW_SHORT = 'cleaned_data/short_flight.csv'
+RAW_LONG  = 'cleaned_data/long_flight.csv'
+PRED_DIR  = 'predict/predict_data'
 
 # --------------------------
 # 快取函式
