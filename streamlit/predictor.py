@@ -39,9 +39,9 @@ long_airports  = ["LAX","JFK","LHR","CDG","FRA","SYD","ZRH"]
 # --------------------------
 # 資料路徑
 # --------------------------
-RAW_SHORT = 'cleaned_data/short_flight.csv'
-RAW_LONG  = 'cleaned_data/long_flight.csv'
-PRED_DIR  = 'predict/predict_data'
+RAW_SHORT = '/Users/yuchingchen/Documents/專題/cleaned_data/short_flight.csv'
+RAW_LONG  = '/Users/yuchingchen/Documents/專題/cleaned_data/long_flight.csv'
+PRED_DIR  = '/Users/yuchingchen/Documents/專題/predict/predict_data'
 
 # --------------------------
 # 快取函式
@@ -82,10 +82,20 @@ st.set_page_config(page_title="預測票價查詢系統", layout="centered")
 st.title("✈️ 預測票價查詢系統")
 
 # 1. 出發機場
+# 保留傳統選項
 dep_choice = st.selectbox("請選擇出發機場", list(departure_display.keys()), key="dep_airport")
 departure = departure_display[dep_choice]
 
-# 2. 抵達機場
+# 2. 抵達機場（動態，根據出發機場篩選）
+# 載入所有短／長程真實組合，僅取出發機場為 departure 的抵達機場
+valid_short = load_valid_combinations(RAW_SHORT)
+valid_long  = load_valid_combinations(RAW_LONG)
+valid_all   = pd.concat([valid_short, valid_long], ignore_index=True).drop_duplicates()
+arrivals = valid_all[valid_all['出發機場代號']==departure]['抵達機場代號'].unique().tolist()
+# 依映射顯示並排序
+arr_disp = [arrival_mapping[code] for code in arrivals if code in arrival_mapping]
+arr_choice = st.selectbox("請選擇抵達機場", arr_disp, key="arr_airport")
+arrival = [k for k,v in arrival_mapping.items() if v==arr_choice][0]
 arr_choice = st.selectbox("請選擇抵達機場", list(arrival_mapping.values()), key="arr_airport")
 arrival = [k for k,v in arrival_mapping.items() if v==arr_choice][0]
 
