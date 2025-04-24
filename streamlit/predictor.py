@@ -1,70 +1,28 @@
-# 根據上傳的資料建立完整 Streamlit 應用程式的程式碼
+# streamlit_app.py
+import os
 import streamlit as st
 import pandas as pd
 
-# 頁面設定
-st.set_page_config(page_title="國際機票價格預測系統", layout="centered")
-
-# 讀取資料
-@st.cache_data
-def load_data():
-    return pd.read_csv("/Users/yuchingchen/Documents/專題/ci/ci_data/short_xgb_with_ci_str.csv")
-
-df = load_data()
-
-# 頁面樣式
-st.markdown("""
-    <style>
-    html, body, [class*="css"] {
-        font-family: 'Noto Sans TC', sans-serif;
-        background-color: #fdfdfd;
-        color: #333333;
-    }
-    .stApp {
-        max-width: 900px;
-        margin: auto;
-        padding-top: 2rem;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-st.title("🛫 國際機票價格預測系統")
-
-# 依序選單
-# 出發機場選單（有中文）
+# --------------------------
+# 參數設定與映射
+# --------------------------
 departure_display = {
     "TPE（桃園）": "TPE",
     "TSA（松山）": "TSA"
 }
-departure_choice = st.selectbox("請選擇出發機場", list(departure_display.keys()))
-departure = departure_display[departure_choice]
-filtered_df = df[df["出發機場代號"] == departure]
-
-# 抵達機場選單（根據出發地篩選，並顯示中文）
 arrival_mapping = {
     "NRT": "NRT（成田）", "HND": "HND（羽田）", "SIN": "SIN（新加坡）", "ICN": "ICN（仁川）",
-    "GMP": "GMP（金浦）", "BKK": "BKK（曼谷）", "HKG": "HKG（香港）", "LHR": "LHR（倫敦希斯洛）",
-    "LAX": "LAX（洛杉磯）", "FRA": "FRA（法蘭克福）", "SYD": "SYD（雪梨）", "CDG": "CDG（巴黎戴高樂）",
-    "ZRH": "ZRH（蘇黎世）", "JFK": "JFK（紐約甘迺迪）"
+    "GMP": "GMP（金浦）", "BKK": "BKK（曼谷）", "HKG": "HKG（香港）",
+    "LHR": "LHR（倫敦希斯洛）", "LAX": "LAX（洛杉磯）", "FRA": "FRA（法蘭克福）",
+    "SYD": "SYD（雪梨）", "CDG": "CDG（巴黎戴高樂）", "ZRH": "ZRH（蘇黎世）", "JFK": "JFK（紐約甘迺迪）"
 }
-arrival_options = sorted(filtered_df["抵達機場代號"].dropna().unique())
-arrival_display = {arrival_mapping[i]: i for i in arrival_options if i in arrival_mapping}
-arrival_choice = st.selectbox("請選擇抵達機場", list(arrival_display.keys()))
-arrival = arrival_display[arrival_choice]
-filtered_df = filtered_df[filtered_df["抵達機場代號"] == arrival]
+alliance_map = {
+    1: "星空聯盟", 2: "天合聯盟", 3: "寰宇一家", 4: "價值聯盟",
+    5: "無聯盟傳統航空", 6: "無聯盟廉價航空"
+}
 
-# 艙等
-cabin_options = sorted(filtered_df["艙等"].dropna().unique())
-cabin = st.selectbox("請選擇艙等", cabin_options)
-filtered_df = filtered_df[filtered_df["艙等"] == cabin]
-
-# 停靠站數量
-stops_options = sorted(filtered_df["停靠站數量"].dropna().unique())
-stops = st.selectbox("請選擇停靠站數量", stops_options)
-filtered_df = filtered_df[filtered_df["停靠站數量"] == stops]
-
-# 出發時段顯示選單對照
-timeslot_display = {
+# 出發時段映射：完整文字 → 短名
+departure_time_display = {
     "凌晨班機（00:00–06:00）": "凌晨班機",
     "早晨班機（06:00–09:00）": "早晨班機",
     "上午班機（09:00–12:00）": "上午班機",
@@ -72,43 +30,131 @@ timeslot_display = {
     "晚間班機（18:00–00:00）": "晚間班機"
 }
 
-# 依前面條件篩選後取得可用出發時段
-timeslot_options = sorted(filtered_df["出發時段"].dropna().unique())
-timeslot_display_options = [k for k, v in timeslot_display.items() if v in timeslot_options]
+# --------------------------
+# 長程／短程航班機場清單（判定模式用）
+# --------------------------
+short_airports = ["NRT","HND","SIN","ICN","GMP","BKK","HKG"]
+long_airports  = ["LAX","JFK","LHR","CDG","FRA","SYD","ZRH"]
 
-# 出發時段選單
-timeslot_choice = st.selectbox("請選擇出發時段", timeslot_display_options)
-timeslot = timeslot_display[timeslot_choice]
-filtered_df = filtered_df[filtered_df["出發時段"] == timeslot]
+# --------------------------
+# 資料路徑
+# --------------------------
+RAW_SHORT = '/Users/yuchingchen/Documents/專題/cleaned_data/short_flight.csv'
+RAW_LONG  = '/Users/yuchingchen/Documents/專題/cleaned_data/long_flight.csv'
+PRED_DIR  = '/Users/yuchingchen/Documents/專題/predict/predict_data'
 
-# 查詢按鈕
-if st.button("🔍 查詢建議"):
-    if filtered_df.empty:
-        st.warning("找不到符合條件的航班。")
+# --------------------------
+# 快取函式
+# --------------------------
+@st.cache_data
+def load_valid_combinations(raw_path):
+    raw = pd.read_csv(raw_path)
+    cols = ["出發機場代號","抵達機場代號","出發時段","抵達時段"]
+    if '停靠站數量' in raw.columns:
+        cols.append('停靠站數量')
+    return raw[cols].drop_duplicates()
+
+@st.cache_data
+def load_all_predictions(mode='short'):
+    subdir = 'short' if mode=='short' else 'long'
+    dfs = []
+    airports = short_airports if mode=='short' else long_airports
+    for ap in airports:
+        # 經濟艙
+        e = pd.read_csv(os.path.join(PRED_DIR, subdir, f'eco_{ap}.csv'))
+        e['艙等'] = '經濟艙'
+        e['抵達機場代號'] = ap
+        # 商務艙
+        b = pd.read_csv(os.path.join(PRED_DIR, subdir, f'biz_{ap}.csv'))
+        b['艙等'] = '商務艙'
+        b['抵達機場代號'] = ap
+        # 短程固定停靠站
+        if mode=='short':
+            e['停靠站數量'] = 0
+            b['停靠站數量'] = 0
+        dfs.extend([e, b])
+    return pd.concat(dfs, ignore_index=True)
+
+# --------------------------
+# Streamlit 介面
+# --------------------------
+st.set_page_config(page_title="預測票價查詢系統", layout="centered")
+st.title("✈️ 預測票價查詢系統")
+
+# 1. 出發機場
+dep_choice = st.selectbox("請選擇出發機場", list(departure_display.keys()), key="dep_airport")
+departure = departure_display[dep_choice]
+
+# 2. 抵達機場
+arr_choice = st.selectbox("請選擇抵達機場", list(arrival_mapping.values()), key="arr_airport")
+arrival = [k for k,v in arrival_mapping.items() if v==arr_choice][0]
+
+# 3. 模式（長/短程）
+mode = 'long' if arrival in long_airports else 'short'
+
+# 4. 載入快取資料
+valid = load_valid_combinations(RAW_LONG if mode=='long' else RAW_SHORT)
+pred_all = load_all_predictions(mode)
+
+# 5. 取當前航線 取當前航線
+df = pred_all[
+    (pred_all['出發機場代號']==departure) &
+    (pred_all['抵達機場代號']==arrival)
+]
+
+# 6. 艙等
+cabin_order = ['經濟艙','商務艙']
+cabin_opts  = [c for c in cabin_order if c in df['艙等'].unique()]
+cabin_opts += [c for c in df['艙等'].unique() if c not in cabin_opts]
+cabin       = st.selectbox('艙等', cabin_opts, index=0, key="cabin_select")
+
+# 7. 停靠站（長程）
+if mode=='long':
+    df_stop   = df[df['艙等']==cabin]
+    stops_opts = sorted(df_stop['停靠站數量'].unique())
+    stops     = st.selectbox('停靠站數量', stops_opts, key="stops_select")
+else:
+    stops = 0
+
+# 8. 出發時段
+df_dep  = df[(df['艙等']==cabin) & ((df['停靠站數量']==stops) if mode=='long' else True)]
+avail   = df_dep['出發時段'].unique().tolist()
+options = [full for full,short in departure_time_display.items() if short in avail]
+others  = [t for t in avail if t not in departure_time_display.values()]
+to_disp= options+others
+dep_full = st.selectbox('出發時段', to_disp, index=0, key="dep_time_select")
+dep_time = departure_time_display.get(dep_full, dep_full)
+
+# 9. 聯盟
+df_alm        = df[(df['艙等']==cabin)&(df['出發時段']==dep_time) & ((df['停靠站數量']==stops) if mode=='long' else True)]
+alliance_vals = sorted(df_alm['航空聯盟'].unique())
+alliance_disp = [alliance_map[v] for v in alliance_vals]
+alm_choice    = st.selectbox('航空聯盟', alliance_disp, key="alliance_select")
+rev_alm       = {v:k for k,v in alliance_map.items()}
+alliance      = rev_alm[alm_choice]
+
+# 10. 查詢
+if st.button('🔍 查詢預測票價', key="search_btn"):
+    res = df[
+        (df['艙等']==cabin) &
+        (df['出發時段']==dep_time) &
+        (df['航空聯盟']==alliance)
+    ]
+    if mode=='long':
+        res = res[res['停靠站數量']==stops]
+
+    join_cols=['出發機場代號','抵達機場代號','出發時段','抵達時段']
+    if mode=='long': join_cols.append('停靠站數量')
+    res = res.merge(valid, on=join_cols, how='inner')
+
+    if res.empty:
+        st.warning('❌ 查無結果')
     else:
-        result_df = filtered_df[[
-            "出發時間", "抵達時間", "航班代碼", "航空公司",
-            "實際價格", "預測值", "CI95下限", "CI95上限", "是否落在CI95"
-        ]].copy()
-
-        # 加上建議欄位
-        def get_suggestion(row):
-            if row["是否落在CI95"] == 1:
-                return "✅ 推薦購買"
-            else:
-                return "⏳ 建議再等等"
-
-        result_df["建議"] = result_df.apply(get_suggestion, axis=1)
-        result_df["預測區間"] = result_df["CI95下限"].round(0).astype(int).astype(str) + " ~ " + result_df["CI95上限"].round(0).astype(int).astype(str)
-
-        # 最終顯示欄位（新增抵達時間與航班代碼）
-        result_df = result_df[[
-            "出發時間", "抵達時間", "航班代碼", "航空公司",
-            "實際價格", "預測區間", "建議"
-        ]]
-
-        st.markdown("### ✈️ 符合條件的航班建議如下：")
-        st.dataframe(result_df, use_container_width=True)
-
-# 祝福語
-st.markdown("✈️ <span style='font-size:18px;'>祝您旅途愉快，平安順利！</span>", unsafe_allow_html=True)
+        res['預測_平均價格']=res['預測_平均價格'].round().astype(int)
+        if mode=='long':
+            disp_cols=['出發機場代號','抵達機場代號','出發時段','抵達時段','艙等','停靠站數量','航空聯盟','機型分類','假期','是否為平日','停留時間_分鐘','實際飛行時間_分鐘','competing_flights','預測_平均價格']
+        else:
+            disp_cols=['出發機場代號','抵達機場代號','出發時段','抵達時段','艙等','航空聯盟','機型分類','假期','是否為平日','飛行時間_分鐘','competing_flights','預測_平均價格']
+        out=res[disp_cols].drop_duplicates()
+        out['航空聯盟']=out['航空聯盟'].map(alliance_map)
+        st.dataframe(out,use_container_width=True,hide_index=True)
