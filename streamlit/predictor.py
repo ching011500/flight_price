@@ -39,8 +39,8 @@ long_airports  = ["LAX","JFK","LHR","CDG","FRA","SYD","ZRH"]
 # --------------------------
 # 資料路徑
 # --------------------------
-RAW_SHORT = 'cleaned_data/short_flight.csv'
-RAW_LONG  = 'cleaned_data/long_flight.csv'
+RAW_SHORT = 'merge_and_cleaned/final_data/short_flight.csv'
+RAW_LONG  = 'merge_and_cleaned/final_data/long_flight.csv'
 PRED_DIR  = 'predict/predict_data'
 
 # --------------------------
