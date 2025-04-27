@@ -55,3 +55,5 @@
 - Streamlit：網頁前端互動式系統
 - 機器學習模型：Random Forest、SVR、XGBoost
 - 資料處理與視覺化：Pandas、Matplotlib、Seaborn
+
+👉 [點我前往 Flight Predictor 網站](https://flight-predictor.streamlit.app/)
