@@ -45,6 +45,8 @@
   - 顯示符合條件的多種航班組合
   - 顯示每筆航班的預測價格區間（下界 ~ 上界）
 
+👉 [點我前往 Flight Predictor 網站](https://flight-predictor.streamlit.app/)
+
 ---
 
 ## 🚀 技術摘要
@@ -54,4 +56,6 @@
 - 機器學習模型：Random Forest、SVR、XGBoost
 - 資料處理與視覺化：Pandas、Matplotlib、Seaborn
 
-👉 [點我前往 Flight Predictor 網站](https://flight-predictor.streamlit.app/)
+## 🖼️ 專題海報
+<img width="2245" height="3179" alt="專題海報" src="https://github.com/user-attachments/assets/8722e3a7-73df-46d1-a740-1b247c109f03" />
+
