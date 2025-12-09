@@ -1,0 +1,19 @@
+{
+  "rows": 24,
+  "segments": [
+    "long_biz",
+    "long_eco",
+    "short_biz",
+    "short_eco"
+  ],
+  "models": [
+    "RandomForest",
+    "XGBoost",
+    "SVR"
+  ],
+  "feature_sets": [
+    "baseline",
+    "interaction"
+  ],
+  "using_native_xgb": false
+}
